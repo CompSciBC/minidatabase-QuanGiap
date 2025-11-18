@@ -28,7 +28,6 @@ struct Engine {
     // Inserts a new record and updates both indexes.
     // Returns the record ID (RID) in the heap.
     int insertRecord(const Record &recIn) {
-        //TODO
         // check if record exist base on id
         int* indexRecord = idIndex.find(recIn.id);
         if(indexRecord != nullptr){
@@ -53,7 +52,6 @@ struct Engine {
     // Deletes a record logically (marks as deleted and updates indexes)
     // Returns true if deletion succeeded.
     bool deleteById(int id) {
-        //TODO
         int* ridPtr = idIndex.find(id);
         if (ridPtr == nullptr) {
             return false; // record not found
@@ -92,7 +90,6 @@ struct Engine {
     // Returns all records with ID in the range [lo, hi].
     // Also reports the number of key comparisons performed.
     vector<const Record *> rangeById(int lo, int hi, int &cmpOut) {
-        //TODO
         // reset comparison count
         idIndex.resetMetrics();
         vector<const Record*> results;
@@ -111,16 +108,31 @@ struct Engine {
         // reset comparison count
         lastIndex.resetMetrics();
         string lowerPrefix = toLower(prefix);
+        string higherPrefix = createStrictlyHigherPrefix(lowerPrefix);
         vector<const Record*> results;
-        vector<int>* ridList = lastIndex.find(lowerPrefix);
-        if (ridList != nullptr) {
-            for(int i=0; i < ridList->size(); i++){
-                int index = (*ridList)[i];
+        // create lambda function to collect results
+        auto rangeFn = [&](string key, vector<int>& ridList) {
+            for(int i=0; i < ridList.size(); i++){
+                int index = ridList[i];
                 results.push_back(&heap[index]);
             }
-        }
+        };
+        lastIndex.rangeApply(lowerPrefix,higherPrefix,rangeFn);
         cmpOut = lastIndex.comparisons;
         return results;
+    }
+    private:
+    string createStrictlyHigherPrefix(const string &prefix) {
+        string higherPrefix = prefix;
+        for(int i = higherPrefix.size() - 1; i >= 0; i--) {
+            if (higherPrefix[i] != char(255)) {
+                higherPrefix[i]++;
+                // truncate the string here
+                higherPrefix.resize(i + 1);
+                return higherPrefix;
+            }
+        }
+        return higherPrefix;
     }
 };
 
