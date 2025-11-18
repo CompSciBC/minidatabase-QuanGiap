@@ -6,6 +6,7 @@
 #include "BST.h"      
 #include "Record.h"
 //add header files as needed
+#include <algorithm>
 
 using namespace std;
 
@@ -29,14 +30,14 @@ struct Engine {
     int insertRecord(const Record &recIn) {
         //TODO
         // check if record exist base on id
-        Record* existRecord = idIndex.find(recIn.id);
-        if(existRecord != nullptr){
+        int* indexRecord = idIndex.find(recIn.id);
+        if(indexRecord != nullptr){
             return -1; // record exist
         }
         heap.push_back(recIn);
         int rid = heap.size() - 1; // get the record id
         idIndex.insert(recIn.id, rid); // insert into id index
-        string lastName = toLower(recIn.lastName);
+        string lastName = toLower(recIn.last);
         vector<int>* ridList = lastIndex.find(lastName);
         if (ridList == nullptr) {
             // no entry for this last name yet
@@ -46,6 +47,7 @@ struct Engine {
             // append to existing list
             ridList->push_back(rid);
         }
+        return rid;
     }
 
     // Deletes a record logically (marks as deleted and updates indexes)
@@ -94,9 +96,10 @@ struct Engine {
         // reset comparison count
         idIndex.resetMetrics();
         vector<const Record*> results;
-        void rangeFn(int key, int rid) {
+        // create lambda function to collect results
+        auto rangeFn = [&](int key, int rid) {
             results.push_back(&heap[rid]);
-        }
+        };
         idIndex.rangeApply(lo, hi, rangeFn);
         cmpOut = idIndex.comparisons;
         return results;
